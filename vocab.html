@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Max's Reading Words</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --bg1:#e05d5d; --bg2:#ff9a3d; --card:#ffffff; --ink:#28304d;
+    --muted:#7b86a8; --ok:#22c55e; --bad:#ef4444; --accent:#6d5efc;
+    --tile:#eef1fb; --tileline:#c9d2f0;
+  }
+  html,body{height:100%;}
+  body{
+    font-family:"Segoe UI","Nunito",system-ui,-apple-system,"微软雅黑",sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:var(--ink); min-height:100%; display:flex; flex-direction:column;
+    align-items:center; padding:18px 14px 40px;
+  }
+  .wrap{width:100%; max-width:680px;}
+  header{color:#fff; text-align:center; margin-bottom:14px;}
+  header h1{font-size:26px; letter-spacing:.5px;}
+  header p{opacity:.9; font-size:13px; margin-top:2px;}
+  .bar{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:12px;}
+  .chip{background:rgba(255,255,255,.22); color:#fff; padding:7px 13px; border-radius:999px;
+        font-size:14px; font-weight:700; backdrop-filter:blur(4px);}
+  .chip b{font-size:16px;}
+  .progress{height:10px; background:rgba(255,255,255,.25); border-radius:999px; overflow:hidden; margin-bottom:16px;}
+  .progress > div{height:100%; width:0%; background:linear-gradient(90deg,#ffd34e,#ff8a3d); transition:width .35s;}
+  .card{background:var(--card); border-radius:22px; padding:26px 22px 22px;
+        box-shadow:0 18px 40px rgba(30,30,80,.25); position:relative;}
+  .deflabel{font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--accent); font-weight:800;}
+  .posbadge{display:inline-block; background:#e05d5d; color:#fff; border-radius:8px; padding:2px 8px;
+        font-size:12px; font-weight:800; letter-spacing:0; text-transform:none; vertical-align:middle;}
+  .phon{color:var(--muted); font-size:13px; font-weight:600; text-transform:none; letter-spacing:0;}
+  .mchip{display:inline-block; border-radius:8px; padding:2px 8px; font-size:12px; font-weight:800;
+        letter-spacing:0; text-transform:none; vertical-align:middle;}
+  .mchip.mnew{background:#eef1fb; color:#6d5efc;}
+  .mchip.mlearn{background:#fff2e6; color:#ff8a3d;}
+  .mchip.mmaster{background:#dcfce7; color:#16a34a;}
+  .definition{font-size:19px; line-height:1.5; margin:8px 0 20px; font-weight:600;}
+  .hintrow{display:flex; align-items:center; gap:10px; margin-bottom:14px; color:var(--muted); font-size:13px;}
+  .speak{border:none; background:var(--tile); color:var(--ink); border-radius:12px; padding:8px 12px;
+         font-size:16px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:6px;}
+  .speak:hover{background:#e2e8fb;}
+  .timer{margin-left:auto; background:var(--tile); color:var(--ink); border-radius:12px; padding:8px 12px;
+         font-weight:800; font-size:15px; min-width:64px; text-align:center;}
+  .timer.low{background:#fee2e2; color:var(--bad); animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+  .tiles{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:8px 0 22px;}
+  .tile{width:44px; height:54px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+        font-size:26px; font-weight:800; text-transform:lowercase;}
+  .tile.fixed{background:var(--tile); color:var(--ink);}
+  .tile.gap{background:#fff; border:2px dashed var(--tileline);}
+  .tile.gap input{width:100%; height:100%; border:none; background:transparent; text-align:center;
+        font-size:26px; font-weight:800; color:var(--bg1); outline:none; text-transform:lowercase;}
+  .tile.sep{width:16px; background:transparent; color:var(--muted);}
+  .tile.right{background:#dcfce7; color:var(--ok); border:2px solid var(--ok);}
+  .tile.wrong{background:#fee2e2; color:var(--bad); border:2px solid var(--bad);}
+  .btn{border:none; border-radius:14px; padding:14px 22px; font-size:17px; font-weight:800; cursor:pointer;
+       width:100%; transition:transform .08s;}
+  .btn:active{transform:scale(.98);}
+  .btn.primary{background:var(--bg1); color:#fff;}
+  .btn.primary:hover{background:#c94a4a;}
+  .btn.next{background:var(--accent); color:#fff;}
+  .answer{display:none; margin-top:4px;}
+  .answer.show{display:block; animation:pop .3s;}
+  @keyframes pop{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  .correctword{font-size:24px; font-weight:800; letter-spacing:1px; margin-bottom:4px;}
+  .correctword .g{color:var(--muted);}
+  .zh{font-size:17px; font-weight:700; color:var(--ink); margin-bottom:12px;}
+  .verdict{font-size:16px; font-weight:800; margin-bottom:12px;}
+  .verdict.ok{color:var(--ok);} .verdict.bad{color:var(--bad);}
+  .example{background:var(--tile); border-radius:14px; padding:14px 16px; font-size:16px; line-height:1.55; margin-bottom:16px;}
+  .example b{color:var(--bg1);}
+  .footer{margin-top:16px; display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap;}
+  .toggle{display:flex; align-items:center; gap:8px; color:#fff; font-size:14px; font-weight:700; cursor:pointer;
+          background:rgba(255,255,255,.18); padding:8px 14px; border-radius:999px;}
+  .toggle input{width:16px; height:16px;}
+  .mini{background:rgba(255,255,255,.18); color:#fff; border:none; border-radius:999px; padding:8px 14px;
+        font-weight:700; font-size:14px; cursor:pointer;}
+  select{border:none; border-radius:999px; padding:8px 12px; font-weight:700; font-size:14px; max-width:100%;}
+  .done{text-align:center; padding:20px 10px 8px;}
+  .done h2{font-size:24px; margin-bottom:8px;}
+  .done p{color:var(--muted); font-size:16px; margin-bottom:18px;}
+  .big{font-size:46px;}
+  .review{text-align:left; margin-top:20px; border-top:1px solid #eef1fb; padding-top:14px;}
+  .review h3{font-size:15px; color:var(--accent); margin-bottom:10px;}
+  .rvitem{background:var(--tile); border-radius:12px; padding:10px 12px; margin-bottom:8px;}
+  .rvhead{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .rvhead b{font-size:18px;}
+  .rvsay{margin-left:auto; border:none; background:#fff; border-radius:8px; padding:4px 8px; cursor:pointer; font-size:14px;}
+  .rvzh{font-weight:700; font-size:15px; margin-top:2px;}
+  .rvdef{color:var(--muted); font-size:13px; margin-top:2px;}
+  .confetti{position:fixed; top:-10px; width:10px; height:16px; z-index:50; border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Max's Reading Words 📖</h1>
+    <p>精读笔记生词 · 选一篇文章，把它的生词全背下来！连续 3 天答对就背熟啦 🎓</p>
+  </header>
+  <div class="bar">
+    <div class="chip">得分 <b id="score">0</b></div>
+    <div class="chip">连对 <b id="streak">0</b> 🔥</div>
+    <div class="chip">本篇未学 <b id="cntnew">0</b></div>
+    <div class="chip">学习中 <b id="cntlearn">0</b></div>
+    <div class="chip">已背熟 <b id="cntmaster">0</b> ✅</div>
+  </div>
+  <div class="progress"><div id="pbar"></div></div>
+  <div id="stage"></div>
+  <div class="footer">
+    <button class="mini" id="backLink">📚 返回精读</button>
+    <select id="daySel"></select>
+    <label class="toggle"><input type="checkbox" id="onlyNew" checked> 只出未背熟的</label>
+    <button class="mini" id="restart">重新开始一轮</button>
+    <button class="mini" id="expprog">⬇ 导出进度</button>
+    <button class="mini" id="impprog">⬆ 导入进度</button>
+    <input type="file" id="impfile" accept="application/json,.json" style="display:none">
+  </div>
+</div>
+<script>
+const GROUPS = [{"day": 1, "title": "The Voice That Rules the Music World", "titleZh": "统治乐坛的天籁之声", "words": [{"word": "troubled", "phon": "/ˈtrʌbld/", "pos": "adj.", "def": "having a lot of problems", "zh": "麻烦不断的；不融洽的", "ex": "...but it was often a troubled relationship."}, {"word": "uninspired", "phon": "/ˌʌnɪnˈspaɪəd/", "pos": "adj.", "def": "not excited or interested", "zh": "提不起劲的；无精打采的", "ex": "She often felt bored and uninspired in class."}, {"word": "turn around", "phon": "/tɜːn əˈraʊnd/", "pos": "phrase", "def": "to change from bad to good", "zh": "（局面）好转、扭转", "ex": "...things turned around when she was accepted into the BRIT School."}, {"word": "big break", "phon": "/bɪɡ breɪk/", "pos": "phrase", "def": "a chance that leads to success", "zh": "重大机遇、成名契机", "ex": "Adele's big break came when she was still at the BRIT School."}, {"word": "demo", "phon": "/ˈdeməʊ/", "pos": "n.", "def": "a sample recording to show one's talent", "zh": "（歌曲的）试听样带", "ex": "She posted a short demo album on her MySpace page."}, {"word": "executive", "phon": "/ɪɡˈzekjətɪv/", "pos": "n.", "def": "an important manager in a company", "zh": "（公司）高管、主管", "ex": "Some studio executives listened to it..."}, {"word": "sign sb to a contract", "phon": "/saɪn ... ˈkɒntrækt/", "pos": "phrase", "def": "to make a formal agreement to work with someone", "zh": "与某人签约", "ex": "...decided to sign her to a contract."}, {"word": "rise to fame", "phon": "/raɪz tə feɪm/", "pos": "phrase", "def": "the process of becoming famous", "zh": "成名之路", "ex": "Adele's rise to fame since then has been incredible."}, {"word": "sweep", "phon": "/swiːp/", "pos": "v.", "def": "to win all or most of the prizes", "zh": "横扫、包揽（奖项）", "ex": "She swept the top categories of the Grammy Awards..."}, {"word": "commercial", "phon": "/kəˈmɜːʃl/", "pos": "adj.", "def": "connected with making money", "zh": "商业的；商业上的", "ex": "Perhaps more important than Adele's commercial success..."}, {"word": "driven", "phon": "/ˈdrɪvn/", "pos": "adj.", "def": "very determined to succeed", "zh": "有干劲的、上进的", "ex": "She is driven, independent, and immensely talented."}, {"word": "immensely", "phon": "/ɪˈmensli/", "pos": "adv.", "def": "extremely; very much", "zh": "极其、非常", "ex": "She is driven, independent, and immensely talented."}, {"word": "comfortable in one's own skin", "phon": "/ˈkʌmftəbl ... skɪn/", "pos": "phrase", "def": "happy with who you are", "zh": "自在做自己、接纳自己", "ex": "She also feels comfortable in her own skin."}, {"word": "force of nature", "phon": "/fɔːs əv ˈneɪtʃə/", "pos": "phrase", "def": "a person with a very strong, powerful personality", "zh": "一股自然之力（形容人个性强大、势不可挡）", "ex": "Some have even described her as a \"force of nature.\""}, {"word": "role model", "phon": "/rəʊl ˈmɒdl/", "pos": "n.", "def": "someone people admire and try to copy", "zh": "榜样、楷模", "ex": "It's hard to imagine a better female role model..."}]}, {"day": 2, "title": "History of Wall Street", "titleZh": "华尔街的历史", "words": [{"word": "colony", "phon": "/ˈkɒləni/", "pos": "n.", "def": "a land controlled by a faraway country", "zh": "殖民地", "ex": "What is now New York City was once a Dutch colony."}, {"word": "protect...from...", "phon": "/prəˈtekt ... frɒm/", "pos": "phrase", "def": "to keep someone or something safe from harm", "zh": "保护……免受……", "ex": "...they built a wall to protect themselves from attacks."}, {"word": "commerce", "phon": "/ˈkɒmɜːs/", "pos": "n.", "def": "the activity of buying and selling; trade", "zh": "商业；贸易", "ex": "Wall Street became a center of commerce early in New York's history."}, {"word": "a handful of", "phon": "/ə ˈhændfʊl əv/", "pos": "phrase", "def": "a small number of", "zh": "少量的、几个", "ex": "Though it was only a handful of blocks long..."}, {"word": "block", "phon": "/blɒk/", "pos": "n.", "def": "the distance along a street between two crossings", "zh": "街区；街段", "ex": "...it was only a handful of blocks long."}, {"word": "warehouse", "phon": "/ˈweəhaʊs/", "pos": "n.", "def": "a large building for storing goods", "zh": "仓库", "ex": "...a convenient place to set up warehouses for imported goods..."}, {"word": "bond", "phon": "/bɒnd/", "pos": "n.", "def": "an official paper promising to pay back borrowed money with interest", "zh": "债券", "ex": "The idea of buying and selling bonds, contracts, and other investments..."}, {"word": "investment", "phon": "/ɪnˈvestmənt/", "pos": "n.", "def": "money put into something to make a profit", "zh": "投资；投资项目", "ex": "...and other investments in businesses wasn't new."}, {"word": "stock exchange", "phon": "/stɒk ɪksˈtʃeɪndʒ/", "pos": "n.", "def": "a place where stocks and shares are bought and sold", "zh": "证券交易所", "ex": "The first stock exchange was set up in Belgium in 1531."}, {"word": "merchant", "phon": "/ˈmɜːtʃənt/", "pos": "n.", "def": "a person who buys and sells goods", "zh": "商人", "ex": "...wealthy merchants along Wall Street traded stocks by word of mouth."}, {"word": "by word of mouth", "phon": "/baɪ wɜːd əv maʊθ/", "pos": "phrase", "def": "by speaking, not in writing", "zh": "口头地、口口相传地", "ex": "...traded stocks by word of mouth."}, {"word": "establish", "phon": "/ɪˈstæblɪʃ/", "pos": "v.", "def": "to set up; to create formally", "zh": "建立、成立", "ex": "...a group of men formally established what they called The Stock Exchange Office."}, {"word": "regulated", "phon": "/ˈreɡjuleɪtɪd/", "pos": "adj.", "def": "controlled by official rules", "zh": "受监管的、有规章的", "ex": "...a formal, regulated entity to buy and sell stocks through."}, {"word": "entity", "phon": "/ˈentəti/", "pos": "n.", "def": "a thing that exists as a single, complete unit", "zh": "实体、机构", "ex": "...a formal, regulated entity to buy and sell stocks through."}, {"word": "on the contrary", "phon": "/ɒn ðə ˈkɒntrəri/", "pos": "phrase", "def": "used to show the opposite is true", "zh": "恰恰相反、正相反", "ex": "On the contrary, in 1817, some members were upset..."}, {"word": "bustling", "phon": "/ˈbʌslɪŋ/", "pos": "adj.", "def": "full of busy activity", "zh": "繁忙热闹的", "ex": "...the bustling, thriving exchange in Philadelphia."}, {"word": "weather the storm", "phon": "/ˈweðə ðə stɔːm/", "pos": "phrase", "def": "to survive a difficult period", "zh": "经受住风暴；渡过难关", "ex": "The NYSE has weathered the storms, from bubbles, panics, and depression to acts of terrorism."}, {"word": "dominate", "phon": "/ˈdɒmɪneɪt/", "pos": "v.", "def": "to be the most powerful or important", "zh": "主导、支配", "ex": "So far, it continues to dominate American finance."}, {"word": "change hands", "phon": "/tʃeɪndʒ hændz/", "pos": "phrase", "def": "to pass from one owner to another", "zh": "易手、转手", "ex": "Today, a billion shares change hands every day."}]}, {"day": 3, "title": "Spray, Connect, Touch", "titleZh": "喷一喷，连一连，摸一摸", "words": [{"word": "touchscreen", "phon": "/ˈtʌtʃskriːn/", "pos": "n.", "def": "a screen that you can touch to give instructions to a device", "zh": "触摸屏", "ex": "Touchscreen technology is commonplace nowadays."}, {"word": "commonplace", "phon": "/ˈkɒmənpleɪs/", "pos": "adj.", "def": "very common; not unusual or surprising", "zh": "普遍的；司空见惯的", "ex": "Touchscreen technology is commonplace nowadays."}, {"word": "be limited to", "phon": "/bɪ ˈlɪmɪtɪd tuː/", "pos": "phr.", "def": "to exist only within a certain range", "zh": "局限于；仅限于", "ex": "Touchscreen technology is limited mostly to small, flat surfaces."}, {"word": "irregular-shaped", "phon": "/ɪˈreɡjələ ʃeɪpt/", "pos": "adj.", "def": "having a shape that is not even or regular", "zh": "形状不规则的", "ex": "It isn't really suitable for large or irregular-shaped objects."}, {"word": "interactive", "phon": "/ˌɪntərˈæktɪv/", "pos": "adj.", "def": "responding to a person's actions or input", "zh": "交互式的；互动的", "ex": "Turning any surface into a working, interactive touchscreen."}, {"word": "essentially", "phon": "/ɪˈsenʃəli/", "pos": "adv.", "def": "basically; when you consider the most important part", "zh": "本质上；基本上", "ex": "Essentially, Electrick is a conductive spray paint."}, {"word": "conductive", "phon": "/kənˈdʌktɪv/", "pos": "adj.", "def": "able to carry electricity or heat", "zh": "导电的；导热性的", "ex": "Essentially, Electrick is a conductive spray paint."}, {"word": "electrode", "phon": "/ɪˈlektrəʊd/", "pos": "n.", "def": "a small piece of metal that electricity passes through", "zh": "电极", "ex": "The electrodes attached to the object then detect where you touch."}, {"word": "detect", "phon": "/dɪˈtekt/", "pos": "v.", "def": "to notice or discover something", "zh": "探测；察觉", "ex": "It can detect your finger within about a centimeter."}, {"word": "accurate", "phon": "/ˈækjərət/", "pos": "adj.", "def": "correct and exact in every detail", "zh": "精确的；准确的", "ex": "It's not quite as accurate as the touchscreen on your smartphone."}, {"word": "durable", "phon": "/ˈdjʊərəbl/", "pos": "adj.", "def": "able to last a long time without being damaged", "zh": "耐用的；持久的", "ex": "It's also durable, able to retain its sensitivity over hundreds of uses."}, {"word": "retain", "phon": "/rɪˈteɪn/", "pos": "v.", "def": "to keep or continue to have something", "zh": "保持；保留", "ex": "Able to retain its sensitivity over hundreds and hundreds of uses."}, {"word": "electromagnetic interference", "phon": "/ɪˌlektrəʊmæɡˈnetɪk ˌɪntəˈfɪərəns/", "pos": "n. phr.", "def": "disturbance caused by electromagnetic waves that affects electronic devices", "zh": "电磁干扰", "ex": "Under conditions like rain or electromagnetic interference."}, {"word": "application", "phon": "/ˌæplɪˈkeɪʃn/", "pos": "n.", "def": "a practical use of something", "zh": "应用；用途", "ex": "What exactly could the applications of this spray-on touchscreen be?"}, {"word": "customize", "phon": "/ˈkʌstəmaɪz/", "pos": "v.", "def": "to change something to suit a particular person or purpose", "zh": "定制；按需要改造", "ex": "You could customize toys, your house, your car—anything!"}, {"word": "compatible", "phon": "/kəmˈpætəbl/", "pos": "adj.", "def": "able to work or be used together", "zh": "兼容的；可共用的", "ex": "Electrick technology is compatible with traditional manufacturing methods."}, {"word": "state-of-the-art", "phon": "/ˌsteɪt əv ði ˈɑːt/", "pos": "adj.", "def": "using the most modern and advanced methods or ideas", "zh": "最先进的；最前沿的", "ex": "It works with newer, state-of-the-art technology like 3-D printing, too."}, {"word": "brand new", "phon": "/brænd njuː/", "pos": "adj. phr.", "def": "completely new", "zh": "崭新的；全新的", "ex": "The technology might be brand new, but the possibilities appear to be endless."}, {"word": "endless", "phon": "/ˈendləs/", "pos": "adj.", "def": "seeming to have no end or limit", "zh": "无穷无尽的", "ex": "The possibilities appear to be endless."}]}, {"day": 4, "title": "The World's First Bridal Shower", "titleZh": "世界上最早的「婚前送礼会」", "words": [{"word": "bridal shower", "phon": "/ˈbraɪdl ˈʃaʊə/", "pos": "n. phr.", "def": "a party for a woman who is about to get married", "zh": "（为新娘办的）婚前送礼会", "ex": "Some say it's the \"oldest bridal shower in the world.\""}, {"word": "come to mind", "phon": "/kʌm tuː maɪnd/", "pos": "phr.", "def": "to be the first thing you think of", "zh": "浮现在脑海里；想到", "ex": "What's the first thing that comes to mind when you think of Indian weddings?"}, {"word": "elegant", "phon": "/ˈelɪɡənt/", "pos": "adj.", "def": "beautiful and graceful in style", "zh": "精美的；雅致的", "ex": "It's probably the elegant designs painted on the bride's body."}, {"word": "ceremony", "phon": "/ˈserəməni/", "pos": "n.", "def": "a formal event performed on special occasions", "zh": "仪式；典礼", "ex": "This is called the Mehndi ceremony."}, {"word": "henna", "phon": "/ˈhenə/", "pos": "n.", "def": "a reddish-brown dye made from a plant, used to color skin and hair", "zh": "指甲花（颜料）", "ex": "A colorful paste made from henna plants."}, {"word": "decorate", "phon": "/ˈdekəreɪt/", "pos": "v.", "def": "to make something look more attractive by adding things to it", "zh": "装饰；装点", "ex": "A bride's hands and arms are decorated with a colorful paste."}, {"word": "pharaoh", "phon": "/ˈfeərəʊ/", "pos": "n.", "def": "a ruler of ancient Egypt", "zh": "法老（古埃及统治者）", "ex": "The Egyptian Pharaoh Cleopatra lived from 69 B.C. to 30 B.C."}, {"word": "trace one's roots back to", "phon": "/treɪdz ruːts bæk tuː/", "pos": "phr.", "def": "to find the origin of something in the past", "zh": "把根源追溯到……", "ex": "It still traces its roots back to the 15th century."}, {"word": "take place", "phon": "/teɪk pleɪs/", "pos": "phr.", "def": "to happen, especially at a planned time", "zh": "举行；发生", "ex": "The Mehndi ceremony takes place on the night before the wedding."}, {"word": "formal", "phon": "/ˈfɔːml/", "pos": "adj.", "def": "following official rules; serious and proper", "zh": "正式的", "ex": "Unlike many other wedding ceremonies, which are more formal."}, {"word": "elaborate", "phon": "/ɪˈlæbərət/", "pos": "adj.", "def": "very detailed and carefully made", "zh": "精致复杂的；精心制作的", "ex": "The bride's hands and arms are painted with elaborate henna designs."}, {"word": "approach", "phon": "/əˈprəʊtʃ/", "pos": "v.", "def": "to deal with something in a particular way", "zh": "对待；处理（此处义）", "ex": "Families approach the Mehndi ceremony differently."}, {"word": "low-key", "phon": "/ˌləʊ ˈkiː/", "pos": "adj.", "def": "quiet, small and not attracting attention", "zh": "低调的；小规模的", "ex": "Sometimes the ceremony is very low-key."}, {"word": "venue", "phon": "/ˈvenjuː/", "pos": "n.", "def": "the place where an event is held", "zh": "（活动的）场地；场所", "ex": "It's a big event, with an outside venue and a long guest list."}, {"word": "a steady hand", "phon": "/ə ˈstedi hænd/", "pos": "n. phr.", "def": "a hand that does not shake; skill in careful work", "zh": "稳健的手（艺）", "ex": "It used to be any neighborhood auntie with experience and a steady hand."}, {"word": "tend to", "phon": "/tend tuː/", "pos": "phr.", "def": "to be likely to do something; usually do something", "zh": "倾向于；往往会", "ex": "Nowadays, brides tend to hire professionals to do the henna painting."}, {"word": "complicated", "phon": "/ˈkɒmplɪkeɪtɪd/", "pos": "adj.", "def": "made of many parts; difficult to do or understand", "zh": "复杂的", "ex": "Their designs are getting more complicated and more beautiful over time."}, {"word": "glitter", "phon": "/ˈɡlɪtə/", "pos": "n.", "def": "tiny shiny pieces used for decoration", "zh": "亮粉；闪光装饰片", "ex": "Some of them have even begun to use glitter and different colors of henna."}]}, {"day": 5, "title": "Farming for the Future", "titleZh": "为未来而耕种", "words": [{"word": "sustainable", "phon": "/səˈsteɪnəbl/", "pos": "adj.", "def": "able to continue for a long time without using up resources or causing harm", "zh": "可持续的", "ex": "The sustainable agriculture movement wants to stop harmful industrial farming."}, {"word": "agriculture", "phon": "/ˈæɡrɪkʌltʃə/", "pos": "n.", "def": "the practice of farming, including growing crops and raising animals", "zh": "农业", "ex": "Sustainable agriculture seeks to protect the environment of farms and their surroundings."}, {"word": "fertilizer", "phon": "/ˈfɜːtəlaɪzə/", "pos": "n.", "def": "a substance put on soil to help plants grow", "zh": "肥料；化肥", "ex": "Chemicals and fertilizers are seeping into soil and groundwater."}, {"word": "seep", "phon": "/siːp/", "pos": "v.", "def": "to flow slowly through small holes or spaces", "zh": "渗漏；慢慢渗入", "ex": "Chemicals and fertilizers are seeping into soil and groundwater."}, {"word": "deplete", "phon": "/dɪˈpliːt/", "pos": "v.", "def": "to reduce the amount or quality of something; to use up", "zh": "耗尽；使减少", "ex": "Soil is being depleted of nutrients."}, {"word": "nutrient", "phon": "/ˈnjuːtriənt/", "pos": "n.", "def": "a substance in food or soil that helps living things grow", "zh": "养分；营养物质", "ex": "Soil is being depleted of nutrients."}, {"word": "agribusiness", "phon": "/ˈæɡrɪbɪznəs/", "pos": "n.", "def": "farming done as a large business by big companies", "zh": "大型农业公司；农业综合企业", "ex": "Family farms can't compete against big agribusiness."}, {"word": "maximize", "phon": "/ˈmæksɪmaɪz/", "pos": "v.", "def": "to make something as large or great as possible", "zh": "使最大化", "ex": "Instead of maximizing production now, sustainable farms operate in a way that allows them to continue to farm for years to come."}, {"word": "organically", "phon": "/ɔːˈɡænɪkli/", "pos": "adv.", "def": "in a way that does not use chemical fertilizers or pesticides", "zh": "（种植）有机地；不用化肥农药地", "ex": "They operate organically or minimize their use of chemicals and non-renewable resources."}, {"word": "non-renewable", "phon": "/ˌnɒn rɪˈnjuːəbl/", "pos": "adj.", "def": "that cannot be replaced after being used, like coal or oil", "zh": "不可再生的", "ex": "They operate organically or minimize their use of chemicals and non-renewable resources."}, {"word": "rotate", "phon": "/rəʊˈteɪt/", "pos": "v.", "def": "to change crops grown on the same land in a regular order", "zh": "轮作；轮换", "ex": "They grow and rotate diverse crops so that soil is replenished rather than depleted."}, {"word": "diverse", "phon": "/daɪˈvɜːs/", "pos": "adj.", "def": "of many different kinds", "zh": "多种多样的", "ex": "They grow and rotate diverse crops so that soil is replenished rather than depleted."}, {"word": "replenish", "phon": "/rɪˈplenɪʃ/", "pos": "v.", "def": "to fill something up again; to bring back what was used", "zh": "补充；重新填满", "ex": "They grow and rotate diverse crops so that soil is replenished rather than depleted."}, {"word": "humanely", "phon": "/hjuːˈmeɪnli/", "pos": "adv.", "def": "in a kind way that does not cause suffering", "zh": "人道地；仁慈地", "ex": "They treat animals humanely and avoid giving them antibiotics and other drugs."}, {"word": "antibiotics", "phon": "/ˌæntibaɪˈɒtɪks/", "pos": "n. (pl.)", "def": "drugs that kill bacteria and cure infections", "zh": "抗生素", "ex": "They treat animals humanely and avoid giving them antibiotics and other drugs."}, {"word": "fair wage", "phon": "/feə weɪdʒ/", "pos": "n. phr.", "def": "pay that is reasonable and just for the work done", "zh": "公平合理的工资", "ex": "Sustainable agriculture seeks to... provide farmers with a fair wage."}, {"word": "appealing", "phon": "/əˈpiːlɪŋ/", "pos": "adj.", "def": "attractive; interesting and pleasing", "zh": "有吸引力的；吸引人的", "ex": "As the problems of industrial farming become clear, sustainable agriculture becomes more appealing."}, {"word": "promote", "phon": "/prəˈməʊt/", "pos": "v.", "def": "to support or encourage something to grow or succeed", "zh": "推广；促进", "ex": "Countries are creating policies to promote it."}]}, {"day": 6, "title": "Alphonse Mucha", "titleZh": "阿尔丰斯·穆夏", "words": [{"word": "portrait", "phon": "/ˈpɔːtrɪt/", "pos": "n.", "def": "a painting or photograph of a person", "zh": "肖像画；人像照片", "ex": "He painted portraits and other scenes, but painting wasn't a very good way to earn a living."}, {"word": "earn a living", "phon": "/ɜːn ə ˈlɪvɪŋ/", "pos": "v. phr.", "def": "to make enough money to live on", "zh": "谋生；挣钱糊口", "ex": "Painting wasn't a very good way to earn a living."}, {"word": "illustration", "phon": "/ˌɪləˈstreɪʃn/", "pos": "n.", "def": "a picture in a book, magazine, etc.", "zh": "插图；插画", "ex": "Mucha made illustrations for books, magazines, and advertisements."}, {"word": "advertisement", "phon": "/ədˈvɜːtɪsmənt/", "pos": "n.", "def": "a notice or poster that tries to sell something", "zh": "广告", "ex": "Mucha got the poster job, an advertisement for the show Gismonda, unexpectedly."}, {"word": "unexpectedly", "phon": "/ˌʌnɪkˈspektɪdli/", "pos": "adv.", "def": "in a way that was not expected; by surprise", "zh": "出乎意料地；意外地", "ex": "Mucha got the poster job... unexpectedly."}, {"word": "volunteer", "phon": "/ˌvɒlənˈtɪə/", "pos": "v.", "def": "to offer to do something without being asked or paid", "zh": "自愿（做）；自告奋勇", "ex": "There was an emergency, and he volunteered to create the poster quickly."}, {"word": "turn ... upside down", "phon": "/tɜːn ˈʌpsaɪd daʊn/", "pos": "v. phr.", "def": "to change something completely", "zh": "彻底颠覆；彻底改变", "ex": "What he made turned the advertising world upside down."}, {"word": "elongated", "phon": "/ˈiːlɒŋɡeɪtɪd/", "pos": "adj.", "def": "made longer than usual; stretched", "zh": "拉长的；细长的", "ex": "Mucha created a dramatic, vertically elongated poster with pastel colors."}, {"word": "pastel", "phon": "/ˈpæstl/", "pos": "adj.", "def": "(of colors) soft and light, not bright", "zh": "（颜色）柔和的；淡彩的", "ex": "Mucha created a dramatic, vertically elongated poster with pastel colors, draping and floral details, and little text."}, {"word": "floral", "phon": "/ˈflɔːrəl/", "pos": "adj.", "def": "decorated with flowers; relating to flowers", "zh": "花卉的；饰有花卉图案的", "ex": "...with pastel colors, draping and floral details, and little text."}, {"word": "in demand", "phon": "/ɪn dɪˈmɑːnd/", "pos": "adj. phr.", "def": "wanted by many people; very popular", "zh": "抢手的；需求旺盛的", "ex": "From then on, Mucha was in demand."}, {"word": "signature style", "phon": "/ˈsɪɡnətʃə staɪl/", "pos": "n. phr.", "def": "a special style that shows who made something", "zh": "标志性的（个人）风格", "ex": "His signature style came to define Art Nouveau."}, {"word": "Art Nouveau", "phon": "/ˌɑːt nuːˈvəʊ/", "pos": "n. (proper)", "def": "an art style popular around 1890-1910, with curving lines and plant shapes", "zh": "新艺术运动（19 世纪末流行的装饰艺术风格）", "ex": "His signature style came to define Art Nouveau: stylized figures, elongated shapes, natural curves, and plant imagery."}, {"word": "long for", "phon": "/lɒŋ fɔː/", "pos": "v. phr.", "def": "to want something very much", "zh": "渴望；热切盼望", "ex": "For all his success, Mucha longed for respect as an academic painter."}, {"word": "epic", "phon": "/ˈepɪk/", "pos": "n.", "def": "a long work that tells a grand story of heroes or history", "zh": "史诗；史诗般的巨作", "ex": "He began The Slav Epic around 1910."}, {"word": "enormous", "phon": "/ɪˈnɔːməs/", "pos": "adj.", "def": "very, very big", "zh": "巨大的；庞大的", "ex": "The twenty enormous paintings told the story of his native Czechoslovakia."}, {"word": "masterwork", "phon": "/ˈmɑːstəwɜːk/", "pos": "n.", "def": "a person's greatest piece of work; masterpiece", "zh": "杰作；代表作", "ex": "He eventually gave this masterwork to his country, which put it in storage for decades."}, {"word": "far-reaching", "phon": "/ˌfɑː ˈriːtʃɪŋ/", "pos": "adj.", "def": "having a great influence that spreads widely", "zh": "影响深远的", "ex": "His influence is far-reaching and long-lasting, lingering in every music or movie poster we see today."}]}, {"day": 7, "title": "Aleutian Islands", "titleZh": "阿留申群岛", "words": [{"word": "lush", "phon": "/lʌʃ/", "pos": "adj.", "def": "(of plants) growing thickly and strongly; rich and green", "zh": "葱翠茂盛的", "ex": "Swinging out in an arc from underneath Alaska is a string of lush, beautiful islands called the Aleutians."}, {"word": "migrate", "phon": "/maɪˈɡreɪt/", "pos": "v.", "def": "to move from one place to another (birds by season; people to settle)", "zh": "迁徙；迁移", "ex": "These islands are the summer home of ten million migrating birds."}, {"word": "otter", "phon": "/ˈɒtə(r)/", "pos": "n.", "def": "a small furry animal that swims and eats fish", "zh": "水獭", "ex": "You can also find many seals, sea lions, otters, and wildflowers here."}, {"word": "stunning", "phon": "/ˈstʌnɪŋ/", "pos": "adj.", "def": "extremely beautiful or impressive", "zh": "极美的；令人惊叹的", "ex": "The scenery is stunning, but these islands are far off the beaten track."}, {"word": "off the beaten track", "phon": "/ɒf ðə ˈbiːtn træk/", "pos": "phrase", "def": "far away from places that people usually visit; remote", "zh": "偏僻的；人迹罕至的", "ex": "These islands are far off the beaten track."}, {"word": "fertile", "phon": "/ˈfɜːtaɪl/", "pos": "adj.", "def": "(of land) able to produce good crops and plants", "zh": "肥沃的", "ex": "The wet, cool weather makes the islands fertile ground for grasses, flowers, mosses, and sedges."}, {"word": "moss", "phon": "/mɒs/", "pos": "n.", "def": "a very small soft green plant that grows on wet ground or rocks", "zh": "苔藓", "ex": "The wet, cool weather makes the islands fertile ground for grasses, flowers, mosses, and sedges."}, {"word": "sedge", "phon": "/sedʒ/", "pos": "n.", "def": "a grass-like plant that grows in wet ground", "zh": "莎草（长在湿地的草类植物）", "ex": "The wet, cool weather makes the islands fertile ground for grasses, flowers, mosses, and sedges."}, {"word": "snap", "phon": "/snæp/", "pos": "v.", "def": "to break suddenly with a sharp noise", "zh": "（啪的一声）折断", "ex": "The wind there is so strong that their trunks would snap."}, {"word": "encounter", "phon": "/ɪnˈkaʊntə(r)/", "pos": "v.", "def": "to meet someone or find something, especially unexpectedly", "zh": "偶遇；遭遇", "ex": "The humans who settled in the islands were called Aleuts by the Russians who first encountered them."}, {"word": "missionary", "phon": "/ˈmɪʃənri/", "pos": "n.", "def": "a person sent to a foreign place to teach about a religion", "zh": "传教士", "ex": "Russians began sending traders and missionaries to the Aleutian Islands."}, {"word": "enslavement", "phon": "/ɪnˈsleɪvmənt/", "pos": "n.", "def": "the act of making people into slaves", "zh": "奴役", "ex": "This led to the enslavement and near extermination of the Aleutian people."}, {"word": "extermination", "phon": "/ɪkˌstɜːmɪˈneɪʃn/", "pos": "n.", "def": "the complete destruction of a group of people or animals", "zh": "灭绝；彻底消灭", "ex": "This led to the enslavement and near extermination of the Aleutian people."}, {"word": "descent", "phon": "/dɪˈsent/", "pos": "n.", "def": "family origins; ancestry (of ... descent = 有……血统)", "zh": "血统；祖籍", "ex": "Perhaps 15,000 people of some Aleutian descent."}, {"word": "intricate", "phon": "/ˈɪntrɪkət/", "pos": "adj.", "def": "having many small parts or details; complicated and detailed", "zh": "精细复杂的；繁复的", "ex": "Their unique culture includes intricate tattooing, piercings, and other body art."}, {"word": "untamed", "phon": "/ˌʌnˈteɪmd/", "pos": "adj.", "def": "wild; not controlled or changed by people", "zh": "未开化的；荒蛮的", "ex": "The Aleutian Islands are still relatively untamed and untrammeled."}, {"word": "untrammeled", "phon": "/ʌnˈtræmld/", "pos": "adj.", "def": "not limited or disturbed; left free and untouched", "zh": "不受侵扰的；未受破坏的", "ex": "The Aleutian Islands are still relatively untamed and untrammeled."}, {"word": "designate", "phon": "/ˈdezɪɡneɪt/", "pos": "v.", "def": "to officially choose or name something for a purpose", "zh": "指定；划定（be designated as 被划定为）", "ex": "They have been designated as wilderness areas by the U.S. government."}]}, {"day": 8, "title": "The Memory Eater", "titleZh": "记忆吞噬者", "words": [{"word": "Alzheimer's (disease)", "phon": "/ˈæltshaɪməz/", "pos": "n.", "def": "a serious brain disease that destroys memory, mostly in old people", "zh": "阿尔茨海默病（老年痴呆症）", "ex": "Alzheimer's is a disease that takes people away before they die."}, {"word": "reverse", "phon": "/rɪˈvɜːs/", "pos": "v.", "def": "to change something to the opposite; to undo a process", "zh": "逆转；颠倒", "ex": "We still don't know exactly what causes it or how to reverse it."}, {"word": "symptom", "phon": "/ˈsɪmptəm/", "pos": "n.", "def": "a sign that shows you have an illness", "zh": "症状", "ex": "Difficulty in forming new memories is usually the first symptom of Alzheimer's."}, {"word": "confuse ... with ...", "phon": "/kənˈfjuːz/", "pos": "phrase", "def": "to mix up two things; to think one thing is another", "zh": "把……与……混淆", "ex": "Alzheimer's symptoms are often confused with the normal aging process."}, {"word": "dreadful", "phon": "/ˈdredfl/", "pos": "adj.", "def": "very bad or unpleasant; terrible", "zh": "可怕的；糟糕的", "ex": "Serious memory problems have everything to do with this dreadful disease."}, {"word": "detect", "phon": "/dɪˈtekt/", "pos": "v.", "def": "to discover or notice something, especially early", "zh": "察觉；（早期）发现", "ex": "Recognizing the relation could lead to detecting Alzheimer's earlier and managing it better."}, {"word": "plaque", "phon": "/plɑːk/", "pos": "n.", "def": "(medical) a buildup of substance in the body, e.g. between nerve cells", "zh": "斑块（医学：体内异常堆积物）", "ex": "People with Alzheimer's develop protein buildups called plaques in the spaces between nerve cells."}, {"word": "tangle", "phon": "/ˈtæŋɡl/", "pos": "n.", "def": "a twisted mass of threads or fibers", "zh": "缠结；乱团", "ex": "They also develop twisted tangles of fibers inside brain cells."}, {"word": "fiber", "phon": "/ˈfaɪbə(r)/", "pos": "n.", "def": "a thin thread-like part in the body or in material", "zh": "纤维", "ex": "They also develop twisted tangles of fibers inside brain cells."}, {"word": "nerve cell", "phon": "/nɜːv sel/", "pos": "n.", "def": "a cell that carries messages in the brain and body", "zh": "神经细胞", "ex": "They seem to kill nerve cells in the brain."}, {"word": "transmit", "phon": "/trænzˈmɪt/", "pos": "v.", "def": "to send or pass signals, signals or information", "zh": "传递；传输", "ex": "Nerve cells transmit electrical impulses that control our thoughts, our movements, and our words."}, {"word": "impulse", "phon": "/ˈɪmpʌls/", "pos": "n.", "def": "a short electrical signal carried by nerves", "zh": "脉冲；神经冲动", "ex": "Nerve cells transmit electrical impulses that control our thoughts, our movements, and our words."}, {"word": "shrink", "phon": "/ʃrɪŋk/", "pos": "v.", "def": "to become smaller", "zh": "萎缩；缩小", "ex": "As a consequence, the brain shrinks."}, {"word": "carry on a conversation", "phon": "/ˈkæri ɒn/", "pos": "phrase", "def": "to keep talking with someone; to hold a conversation", "zh": "进行交谈；把对话进行下去", "ex": "Patients lose their ability to move well, to carry on a conversation, and eventually to speak."}, {"word": "retreat", "phon": "/rɪˈtriːt/", "pos": "v.", "def": "to move back or withdraw to a quiet, private place", "zh": "退避；退缩（retreat into a ... world 躲进……的世界）", "ex": "Loved ones can only watch as the patient retreats into a private, perhaps lonely world."}, {"word": "ongoing", "phon": "/ˈɒnɡəʊɪŋ/", "pos": "adj.", "def": "still happening; continuing", "zh": "进行中的", "ex": "Research is ongoing."}, {"word": "acquaintance", "phon": "/əˈkweɪntəns/", "pos": "n.", "def": "a person you know a little but not well", "zh": "相识的人；泛泛之交", "ex": "（第 4 题选项）Remembering the names of new acquaintances."}, {"word": "compassionate", "phon": "/kəmˈpæʃənət/", "pos": "adj.", "def": "feeling or showing sympathy and care for people who suffer", "zh": "有同情心的", "ex": "（第 6 题选项）What is the author's tone? — Compassionate."}]}, {"day": 9, "title": "Kidnapping a Computer", "titleZh": "“绑架”一台电脑", "words": [{"word": "ransomware", "phon": "/ˈrænsəmweə(r)/", "pos": "n.", "def": "a type of computer virus that locks your files and demands money", "zh": "勒索软件", "ex": "You are a victim of ransomware."}, {"word": "encrypt", "phon": "/ɪnˈkrɪpt/", "pos": "v.", "def": "to change information into a secret code so others cannot read it", "zh": "把……加密", "ex": "A screen says your files are encrypted, and you can't access them."}, {"word": "victim", "phon": "/ˈvɪktɪm/", "pos": "n.", "def": "a person who suffers because of a crime or a bad event", "zh": "受害者", "ex": "Ransomware locks part of a computer's functions, and asks the victim for payment to open them again."}, {"word": "ransom", "phon": "/ˈrænsəm/", "pos": "n.", "def": "money demanded in exchange for setting free a person or thing that is held", "zh": "赎金", "ex": "But ransomware will always ask for a ransom—there's always a way to “make it stop.”"}, {"word": "cyber criminal", "phon": "/ˈsaɪbə ˌkrɪmɪnl/", "pos": "n.", "def": "a person who commits crimes using computers or the Internet", "zh": "网络罪犯", "ex": "It used to be that cyber criminals would create viruses to cause trouble."}, {"word": "profit", "phon": "/ˈprɒfɪt/", "pos": "v.", "def": "to get money or an advantage from something", "zh": "（从……中）获利", "ex": "These people learned that they could actually profit from their criminal behavior."}, {"word": "function", "phon": "/ˈfʌŋkʃn/", "pos": "n.", "def": "a job that something is designed to do", "zh": "功能", "ex": "Ransomware locks part of a computer's functions, and asks the victim for payment to open them again."}, {"word": "brutal", "phon": "/ˈbruːtl/", "pos": "adj.", "def": "very cruel or harsh", "zh": "残酷的", "ex": "Victims of ransomware face a brutal choice: pay up, or kiss their files goodbye."}, {"word": "cybersecurity", "phon": "/ˌsaɪbəsɪˈkjʊərəti/", "pos": "n.", "def": "the protection of computers and networks from attack", "zh": "网络安全", "ex": "Research from cybersecurity firms found that only around 5% of people actually consider paying."}, {"word": "estimate", "phon": "/ˈestɪmeɪt/", "pos": "v.", "def": "to judge an amount or value roughly", "zh": "估计", "ex": "The FBI estimates that cyber criminals raised around $1 billion from ransomware attacks in 2016."}, {"word": "billion", "phon": "/ˈbɪljən/", "pos": "num.", "def": "the number 1,000,000,000", "zh": "十亿", "ex": "Cyber criminals raised around $1 billion from ransomware attacks in 2016."}, {"word": "average", "phon": "/ˈævərɪdʒ/", "pos": "adj.", "def": "found by adding amounts together and dividing by how many there are", "zh": "平均的", "ex": "Ransomware demanded an average payment of $294 in 2015."}, {"word": "demand", "phon": "/dɪˈmɑːnd/", "pos": "v.", "def": "to ask for something in a strong or forceful way", "zh": "（强硬地）索要", "ex": "Ransomware demanded an average payment of $294 in 2015."}, {"word": "infect", "phon": "/ɪnˈfekt/", "pos": "v.", "def": "to make a person, animal or computer get a disease or virus", "zh": "使感染（病毒）", "ex": "How can I avoid being infected?"}, {"word": "attachment", "phon": "/əˈtætʃmənt/", "pos": "n.", "def": "a file that is sent together with an email", "zh": "（邮件）附件", "ex": "Most ransomware spreads via links or attachments in emails."}, {"word": "via", "phon": "/ˈvaɪə/", "pos": "prep.", "def": "by means of; through", "zh": "通过，经由", "ex": "Most ransomware spreads via links or attachments in emails."}, {"word": "add up to", "phon": "/æd ʌp tuː/", "pos": "phr.", "def": "to reach a total amount when added together", "zh": "累计达到", "ex": "Yet that 5% still adds up to a lot of money."}]}, {"day": 10, "title": "Talking With Your Hands", "titleZh": "用双手“交谈”", "words": [{"word": "communicate", "phon": "/kəˈmjuːnɪkeɪt/", "pos": "v.", "def": "to share information, thoughts or feelings with others", "zh": "交流；沟通", "ex": "Humans are social beings, driven to communicate."}, {"word": "sign language", "phon": "/ˈsaɪn ˌlæŋɡwɪdʒ/", "pos": "n.", "def": "a language that uses hand movements instead of sounds", "zh": "手语", "ex": "For deaf people, this is sign language."}, {"word": "deaf", "phon": "/def/", "pos": "adj.", "def": "unable to hear well or unable to hear at all", "zh": "失聪的；聋的", "ex": "The first free school for deaf people wasn't founded until 1775."}, {"word": "found", "phon": "/faʊnd/", "pos": "v.", "def": "to start or establish something, such as a school or an organization", "zh": "创办；建立（注意：与 find 的过去式同形）", "ex": "He returned to the United States to found the first school for the deaf in America."}, {"word": "philosophy", "phon": "/fəˈlɒsəfi/", "pos": "n.", "def": "a set of ideas about how to do or understand something", "zh": "理念；哲学", "ex": "More popped up, using different signs and philosophies."}, {"word": "educate", "phon": "/ˈedʒukeɪt/", "pos": "v.", "def": "to teach someone, especially in a school", "zh": "教育", "ex": "Gallaudet traveled to Europe to learn how to educate deaf people."}, {"word": "asylum", "phon": "/əˈsaɪləm/", "pos": "n.", "def": "(old use) an institution that offers shelter and care", "zh": "收容所；养育院（旧用法）", "ex": "The Connecticut Asylum for the Education and Instruction of Deaf and Dumb Persons, in 1817."}, {"word": "emerge", "phon": "/ɪˈmɜːdʒ/", "pos": "v.", "def": "to appear or come into being", "zh": "出现；形成", "ex": "It was at this school that American Sign Language (ASL) emerged."}, {"word": "combination", "phon": "/ˌkɒmbɪˈneɪʃn/", "pos": "n.", "def": "two or more things joined together", "zh": "结合；混合", "ex": "ASL emerged out of the combination of French Sign Language and signs the students had brought with them."}, {"word": "influence", "phon": "/ˈɪnfluəns/", "pos": "n.", "def": "the power to cause an effect on someone or something", "zh": "影响；影响力", "ex": "Because of the strong French influence, ASL and modern French Sign Language share more than half of their vocabulary."}, {"word": "element", "phon": "/ˈelɪmənt/", "pos": "n.", "def": "a basic part of something", "zh": "要素；组成部分", "ex": "Each sign contains five elements."}, {"word": "palm", "phon": "/pɑːm/", "pos": "n.", "def": "the inner surface of the hand", "zh": "手掌；掌心", "ex": "The direction of the palm is one of the five elements."}, {"word": "cue", "phon": "/kjuː/", "pos": "n.", "def": "a signal or hint that helps you understand or do something", "zh": "提示；线索", "ex": "Cues like facial expression, posture, or moving one's mouth."}, {"word": "facial expression", "phon": "/ˌfeɪʃl ɪkˈspreʃn/", "pos": "n.", "def": "the look on someone's face that shows what they feel", "zh": "面部表情", "ex": "Facial expression is very important, as it adds emotion."}, {"word": "posture", "phon": "/ˈpɒstʃə(r)/", "pos": "n.", "def": "the way you hold your body when sitting or standing", "zh": "姿势；体态", "ex": "Cues like facial expression, posture, or moving one's mouth."}, {"word": "sarcastic", "phon": "/sɑːˈkæstɪk/", "pos": "adj.", "def": "saying the opposite of what you mean, in order to mock", "zh": "讽刺的；说反话的", "ex": "Making a sign for an emotion without expressing it on your face can be sarcastic in ASL."}, {"word": "intonation", "phon": "/ˌɪntəˈneɪʃn/", "pos": "n.", "def": "the rise and fall of the voice when speaking", "zh": "语调", "ex": "Movements and expressions affect issues like stress, intonation, and the flow of a conversation."}]}, {"day": 11, "title": "Darkness on the Sun", "titleZh": "太阳上的“黑暗”", "words": [{"word": "uniform", "phon": "/ˈjuːnɪfɔːm/", "pos": "adj.", "def": "the same all over; not changing or varying", "zh": "均匀的；始终如一的（注意：作名词是“制服”）", "ex": "The sun isn't a uniform ball of fire."}, {"word": "flare", "phon": "/fleə(r)/", "pos": "n.", "def": "a sudden burst of bright light or heat", "zh": "耀斑；骤亮的火光", "ex": "Instead, it bursts with flares and spots."}, {"word": "phenomenon", "phon": "/fəˈnɒmɪnən/", "pos": "n.", "def": "a fact or event in nature or society (plural: phenomena)", "zh": "现象（复数 phenomena）", "ex": "It has other phenomena, none of which are completely understood."}, {"word": "sunspot", "phon": "/ˈsʌnspɒt/", "pos": "n.", "def": "a dark spot on the surface of the sun", "zh": "太阳黑子", "ex": "Sunspots are dark spots that appear on the surface of the sun."}, {"word": "speck", "phon": "/spek/", "pos": "n.", "def": "a very small spot or piece of something", "zh": "小点；微粒", "ex": "They can be specks or areas tens or hundreds of thousands of miles wide."}, {"word": "disrupt", "phon": "/dɪsˈrʌpt/", "pos": "v.", "def": "to interrupt or break apart the normal state of something", "zh": "扰乱；使破裂", "ex": "Sunspots are caused when the sun's surface is disrupted."}, {"word": "leak", "phon": "/liːk/", "pos": "v.", "def": "to escape slowly through a crack or hole", "zh": "渗漏；泄漏", "ex": "Electrified material then leaks from the crack like a whirlwind."}, {"word": "whirlwind", "phon": "/ˈwɜːlwɪnd/", "pos": "n.", "def": "a tall spinning column of wind", "zh": "旋风", "ex": "Electrified material then leaks from the crack like a whirlwind."}, {"word": "solar wind", "phon": "/ˈsəʊlə wɪnd/", "pos": "n.", "def": "a flow of charged particles coming from the sun", "zh": "太阳风", "ex": "This adds to the solar wind—a flow of charged particles."}, {"word": "charged", "phon": "/tʃɑːdʒd/", "pos": "adj.", "def": "carrying an electric charge", "zh": "带电的", "ex": "A flow of charged particles that comes out of the sun's atmosphere."}, {"word": "particle", "phon": "/ˈpɑːtɪkl/", "pos": "n.", "def": "a very tiny piece of matter", "zh": "粒子；微粒", "ex": "This flow of charged particles can reach the earth's atmosphere."}, {"word": "interfere with", "phon": "/ˌɪntəˈfɪə wɪð/", "pos": "phr.", "def": "to get in the way of something and cause problems", "zh": "干扰；妨碍", "ex": "It can interfere with satellite transmissions, radio waves, and GPS data."}, {"word": "transmission", "phon": "/trænsˈmɪʃn/", "pos": "n.", "def": "the sending out of signals, data or broadcasts", "zh": "传输；播送", "ex": "It can interfere with satellite transmissions."}, {"word": "power grid", "phon": "/ˈpaʊə ɡrɪd/", "pos": "n.", "def": "the network that carries electricity to homes and businesses", "zh": "电网", "ex": "It can knock out power grids."}, {"word": "confirm", "phon": "/kənˈfɜːm/", "pos": "v.", "def": "to show or prove that something is true", "zh": "证实；确认", "ex": "A recent study confirms that sunspots also affect Earth's weather."}, {"word": "chain reaction", "phon": "/tʃeɪn riˈækʃn/", "pos": "n.", "def": "a series of events in which each one causes the next", "zh": "连锁反应", "ex": "This leads to a chain reaction that increases rain in the tropics."}, {"word": "tropics", "phon": "/ˈtrɒpɪks/", "pos": "n.", "def": "the hottest part of the earth, near the equator", "zh": "热带（地区）", "ex": "This leads to a chain reaction that increases rain in the tropics."}]}];
+const TIME_LIMIT = 60;
+const MASTER_DAYS = 3;   // 跨不同日期累计答对几次算"已背熟"
+const LS_PROG='max_reading_vocab_progress', LS_SCORE='max_reading_vocab_score';
+// 进度模型:  prog[word] = { c:跨天答对次数, last:'YYYY-MM-DD'最近一次计数的日期, mastered:bool, seen:bool }
+function today(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function loadProg(){ try{return JSON.parse(localStorage.getItem(LS_PROG))||{};}catch(e){return {};} }
+function saveProg(p){ localStorage.setItem(LS_PROG, JSON.stringify(p)); }
+function getP(word){ const p=loadProg(); return p[word] || {c:0,last:'',mastered:false,seen:false}; }
+function setP(word,v){ const p=loadProg(); p[word]=v; saveProg(p); }
+// 答对:同一天只累计一次;跨天累计;达标即背熟
+function markRight(word){
+  const v=getP(word); v.seen=true;
+  if(v.last!==today()){ v.c=(v.c||0)+1; v.last=today(); }
+  if(v.c>=MASTER_DAYS) v.mastered=true;
+  setP(word,v);
+}
+// 答错:清零、降级(背熟的也打回)
+function markWrong(word){
+  const v=getP(word); v.seen=true; v.c=0; v.last=''; v.mastered=false;
+  setP(word,v);
+}
+function curGroup(){ return GROUPS[parseInt(document.getElementById('daySel').value,10)]; }
+function stats(){
+  const p=loadProg(); let mastered=0, learning=0;
+  curGroup().words.forEach(w=>{ const v=p[w.word];
+    if(v&&v.mastered) mastered++;
+    else if(v&&v.seen) learning++;
+  });
+  return {mastered, learning, unlearned: curGroup().words.length-mastered-learning};
+}
+let totalScore = parseInt(localStorage.getItem(LS_SCORE)||'0',10);
+let queue=[], idx=0, streak=0, roundRight=0, roundTotal=0, answered=false, curBlanks=[];
+let timerId=null, timeLeft=0;
+function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+function startTimer(){
+  clearTimer(); timeLeft=TIME_LIMIT; updateTimer();
+  timerId=setInterval(()=>{ timeLeft--; updateTimer(); if(timeLeft<=0){ clearTimer(); reveal(true); } },1000);
+}
+function updateTimer(){
+  const t=document.getElementById('timer'); if(!t) return;
+  t.textContent='⏱ '+Math.max(timeLeft,0)+'s';
+  t.classList.toggle('low', timeLeft<=10);
+}
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function letterIdxs(w){ let a=[]; for(let i=0;i<w.length;i++) if(/[a-zA-Z]/.test(w[i])) a.push(i); return a; }
+function chooseBlanks(word){
+  const li=letterIdxs(word), n=li.length;
+  if(n<=2) return [];
+  const interior=li.slice(1,n-1);
+  const k=Math.min(Math.floor(n*0.5), interior.length);
+  return shuffle(interior).slice(0,k).sort((a,b)=>a-b);
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function buildQueue(){
+  clearTimer();
+  const g=curGroup();
+  const p=loadProg();
+  const onlyNew=document.getElementById('onlyNew').checked;
+  let pool=g.words;
+  if(onlyNew) pool=g.words.filter(x=> !(p[x.word] && p[x.word].mastered));
+  queue=shuffle(pool);   // 组内随机打乱
+  idx=0; roundRight=0; roundTotal=queue.length;
+  refreshChips();
+  if(queue.length===0){ renderEmpty(); } else { renderCard(); }
+}
+function refreshChips(){
+  document.getElementById('score').textContent=totalScore;
+  document.getElementById('streak').textContent=streak;
+  const s=stats();
+  document.getElementById('cntnew').textContent=s.unlearned;
+  document.getElementById('cntlearn').textContent=s.learning;
+  document.getElementById('cntmaster').textContent=s.mastered;
+  const pct = roundTotal? Math.round(idx/roundTotal*100):0;
+  document.getElementById('pbar').style.width=pct+'%';
+}
+function renderEmpty(){
+  clearTimer();
+  const g=curGroup();
+  document.getElementById('stage').innerHTML=
+   '<div class="card done"><div class="big">🏆</div><h2>Day '+g.day+' 的词全背熟啦!</h2>'+
+   '<p>太厉害了 🎉 这篇的生词全部拿下。可以换一篇继续，或把「只出未背熟的」关掉再复习一遍。</p></div>';
+}
+function renderCard(){
+  clearTimer(); answered=false;
+  const item=queue[idx]; curBlanks=chooseBlanks(item.word); const w=item.word;
+  const pv=getP(w);
+  let statusChip='';
+  if(pv.mastered){ statusChip='<span class="mchip mmaster">✅ 已背熟·复习</span>'; }
+  else if(pv.seen){ statusChip='<span class="mchip mlearn">📚 学习中 '+pv.c+'/'+MASTER_DAYS+'</span>'; }
+  else { statusChip='<span class="mchip mnew">🆕 新词</span>'; }
+  let tiles='';
+  for(let i=0;i<w.length;i++){
+    if(w[i]==='-'||w[i]===' '){ tiles+='<div class="tile sep">'+ (w[i]==='-'?'-':'') +'</div>'; continue; }
+    if(curBlanks.includes(i)){
+      tiles+='<div class="tile gap"><input data-pos="'+i+'" maxlength="1" autocomplete="off" inputmode="latin"></div>';
+    } else { tiles+='<div class="tile fixed">'+w[i]+'</div>'; }
+  }
+  document.getElementById('stage').innerHTML=
+    '<div class="card">'+
+      '<div class="deflabel">意思提示 &nbsp;<span class="posbadge">'+item.pos+'</span> &nbsp;<span class="phon">'+esc(item.phon||'')+'</span> &nbsp;'+statusChip+'</div>'+
+      '<div class="definition">'+esc(item.def)+'</div>'+
+      '<div class="hintrow"><button class="speak" id="say">🔊 听发音</button><span>共 '+letterIdxs(w).length+' 个字母,填空 '+curBlanks.length+' 个</span><span class="timer" id="timer">⏱ '+TIME_LIMIT+'s</span></div>'+
+      '<div class="tiles">'+tiles+'</div>'+
+      '<button class="btn primary" id="check">检查答案</button>'+
+      '<div class="answer" id="ans"></div>'+
+    '</div>';
+  const inputs=[...document.querySelectorAll('.tile.gap input')];
+  inputs.forEach((inp,k)=>{
+    inp.addEventListener('input',()=>{
+      inp.value=inp.value.replace(/[^a-zA-Z]/g,'').toLowerCase();
+      if(inp.value && k<inputs.length-1) inputs[k+1].focus();
+    });
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Backspace' && !inp.value && k>0) inputs[k-1].focus();
+      if(e.key==='Enter') reveal(false);
+    });
+  });
+  if(inputs[0]) inputs[0].focus();
+  document.getElementById('say').onclick=()=>speak(w);
+  document.getElementById('check').onclick=()=>reveal(false);
+  refreshChips(); startTimer();
+}
+function speak(w){
+  try{ const u=new SpeechSynthesisUtterance(w.replace(/-/g,' ')); u.lang='en-GB'; u.rate=.85;
+       speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){}
+}
+function reveal(timedOut){
+  if(answered) return;
+  const item=queue[idx], w=item.word;
+  const inputs=[...document.querySelectorAll('.tile.gap input')];
+  if(!timedOut && inputs.some(i=>!i.value)){ inputs.find(i=>!i.value).focus(); return; }
+  answered=true; clearTimer();
+  let allRight=true;
+  inputs.forEach(inp=>{
+    const pos=+inp.dataset.pos; const correct=w[pos].toLowerCase(); const box=inp.parentElement;
+    const val=(inp.value||'').toLowerCase();
+    if(!timedOut && val===correct){ box.className='tile right'; box.textContent=correct; }
+    else { box.className='tile wrong'; box.textContent=correct; allRight=false; }
+  });
+  document.getElementById('check').style.display='none';
+  let cw=''; for(let i=0;i<w.length;i++){ cw += curBlanks.includes(i)? '<span style="color:var(--accent)">'+w[i]+'</span>' : '<span class="g">'+w[i]+'</span>'; }
+  const exHtml=esc(item.ex||'').replace(new RegExp('('+w.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&')+')','i'),'<b>$1</b>');
+  const verdict = allRight ? pickPraise() : (timedOut ? '⏰ 时间到,这个算错' : '再看一眼正确拼写 👇');
+  document.getElementById('ans').className='answer show';
+  document.getElementById('ans').innerHTML=
+    '<div class="verdict '+(allRight?'ok':'bad')+'">'+verdict+'</div>'+
+    '<div class="correctword">'+cw+'</div>'+
+    '<div class="zh">🈶 '+esc(item.zh)+' &nbsp;<span class="posbadge">'+item.pos+'</span> &nbsp;<span class="phon">'+esc(item.phon||'')+'</span></div>'+
+    '<div class="example">📖 文中原句：'+exHtml+'</div>'+
+    '<button class="btn next" id="next">下一个 →</button>';
+  document.getElementById('next').onclick=next;
+  if(allRight){
+    const before=getP(w).mastered;
+    markRight(w);
+    const after=getP(w).mastered;
+    streak++; totalScore+=10; roundRight++; localStorage.setItem(LS_SCORE,totalScore);
+    if(!before && after){
+      const vd=document.querySelector('#ans .verdict');
+      if(vd) vd.innerHTML='🎓 这个词背熟啦! ✅';
+    }
+    confetti();
+  } else { streak=0; markWrong(w); }
+  refreshChips();
+}
+const PRAISE=['太棒了! 🌟','完全正确! 🎉','厉害! 💪','拼对啦! ✨','就是这个! 🏆','漂亮! 👏'];
+function pickPraise(){ return PRAISE[Math.floor(Math.random()*PRAISE.length)]; }
+function next(){
+  idx++;
+  if(idx>=queue.length){ renderDone(); refreshChips(); } else renderCard();
+}
+function renderDone(){
+  clearTimer();
+  document.getElementById('pbar').style.width='100%';
+  const pct=roundTotal?Math.round(roundRight/roundTotal*100):0;
+  const g=curGroup();
+  let review='<div class="review"><h3>📖 Day '+g.day+'「'+esc(g.titleZh)+'」生词回看</h3>';
+  g.words.forEach(it=>{
+    review += '<div class="rvitem"><div class="rvhead"><b>'+it.word+'</b> <span class="posbadge">'+it.pos+'</span> <span class="phon">'+esc(it.phon||'')+'</span>'+
+      '<button class="rvsay" data-w="'+it.word+'">🔊</button></div>'+
+      '<div class="rvzh">'+esc(it.zh)+'</div>'+
+      '<div class="rvdef">'+esc(it.def)+'</div></div>';
+  });
+  review+='</div>';
+  const s=stats();
+  document.getElementById('stage').innerHTML=
+    '<div class="card done"><div class="big">'+(pct>=80?'🏆':(pct>=50?'🎉':'💪'))+'</div>'+
+    '<h2>这一轮结束!</h2>'+
+    '<p>答对 '+roundRight+' / '+roundTotal+' 个'+(pct>=80?' — 太强了!':'') +'</p>'+
+    '<p style="font-size:14px">🆕 本篇未学 '+s.unlearned+' &nbsp;·&nbsp; 📚 学习中 '+s.learning+' &nbsp;·&nbsp; ✅ 已背熟 '+s.mastered+'</p>'+
+    '<button class="btn primary" id="again">再来一轮</button>'+
+    review+
+    '</div>';
+  document.getElementById('again').onclick=buildQueue;
+  document.querySelectorAll('.rvsay').forEach(b=> b.onclick=()=>speak(b.dataset.w));
+}
+function confetti(){
+  const colors=['#ffd34e','#ff8a3d','#22c55e','#46c6ff','#6d5efc','#ef4444'];
+  for(let i=0;i<26;i++){
+    const d=document.createElement('div'); d.className='confetti';
+    d.style.left=Math.random()*100+'vw';
+    d.style.background=colors[i%colors.length];
+    d.style.transform='rotate('+Math.random()*360+'deg)';
+    document.body.appendChild(d);
+    const fall=800+Math.random()*700;
+    d.animate([{top:'-10px',opacity:1},{top:'100vh',opacity:.9}],{duration:fall,easing:'ease-in'});
+    setTimeout(()=>d.remove(),fall);
+  }
+}
+// ---- 进度导出/导入(换电脑、换浏览器、加新文章都不丢进度)----
+function exportProgress(){
+  const data={ progress: loadProg(), score: totalScore, savedAt: new Date().toISOString(), app:'max_reading_vocab' };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  const d=new Date();
+  const stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  a.href=URL.createObjectURL(blob);
+  a.download='Max精读背单词进度_'+stamp+'.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },100);
+  alert('进度已导出! 文件已下载(默认在"下载"文件夹)。\n换电脑或加新文章后,用"导入进度"把它读回来即可。');
+}
+function importProgress(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || typeof data!=='object' || !data.progress) throw new Error('bad');
+      const cur=loadProg();
+      const inc=data.progress;
+      let merged=Object.assign({}, cur);
+      Object.keys(inc).forEach(w=>{
+        const a=merged[w], b=inc[w];
+        if(!a){ merged[w]=b; return; }
+        if(b.mastered && !a.mastered){ merged[w]=b; }
+        else if((b.c||0)>(a.c||0)){ merged[w]=b; }
+      });
+      saveProg(merged);
+      if(typeof data.score==='number' && data.score>totalScore){
+        totalScore=data.score; localStorage.setItem(LS_SCORE,totalScore);
+      }
+      alert('进度已导入并合并! ✅');
+      buildQueue();
+    }catch(e){
+      alert('导入失败: 这个文件不是有效的进度文件。\n请选择之前"导出进度"下载的那个 .json 文件。');
+    }
+  };
+  reader.readAsText(file);
+}
+// 初始化下拉框：Day 1 ~ 已有篇目
+function initDaySel(){
+  const sel=document.getElementById('daySel');
+  GROUPS.forEach((g,i)=>{
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent='Day '+g.day+' · '+g.title+'（'+g.words.length+'词）';
+    sel.appendChild(o);
+  });
+  // 默认选中最新一篇
+  sel.value=String(GROUPS.length-1);
+}
+document.getElementById('expprog').onclick=exportProgress;
+document.getElementById('impprog').onclick=()=>document.getElementById('impfile').click();
+document.getElementById('impfile').onchange=e=>{ if(e.target.files[0]) importProgress(e.target.files[0]); e.target.value=''; };
+document.getElementById('restart').onclick=buildQueue;
+document.getElementById('daySel').onchange=buildQueue;
+document.getElementById('onlyNew').onchange=buildQueue;
+initDaySel();
+buildQueue();
+// 线上回 index.html，本地回 Max精读.html
+document.getElementById('backLink').onclick=()=>{
+  location.href = location.protocol==='https:' ? 'index.html' : 'Max精读.html';
+};
+</script>
+</body>
+</html>
