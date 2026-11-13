@@ -10,3 +10,4 @@
 | v1.3 | 2026-09-06 | 新增 Day 9：Kidnapping a Computer（勒索软件，新分类 Technology 科技），共 9 篇 |
 | v1.4 | 2026-11-13 | 新增 Day 10：Talking With Your Hands（用双手“交谈”，新分类 Language 语言），共 10 篇 |
 | v1.5 | 2026-11-13 | 新增 Day 11：Darkness on the Sun（太阳上的“黑暗”，新分类 Mystery 未解之谜），共 11 篇 |
+| v1.6 | 2026-11-13 | 新上线精读背单词页 vocab.html（11 篇 194 词，按篇分组+下拉选篇）；精读页顶部加「🎯 背单词」入口互链 |
